@@ -56,14 +56,20 @@ def test_run_v2(classifier, testdb, runsults):
     runsults['accuracy_samples'].append(correto*100.0/total)
 
 
-def report_results(results):
+def report_results(results, db_name):
+    f = open('report-results-{}.txt'.format(db_name.split('.')[0].lower()), 'w+')
     # Training time
+    f.write('Training time:\n')
     names, values, yerr = [], [], []
     for key, result in results.iteritems():
         names.append(key)
         values.append(numpy.average(result['training_time_samples'])*1000)
-        yerr.append(numpy.std(result['training_time_samples']))
-    
+        yerr.append(numpy.std(result['training_time_samples'])*1000)
+
+    f.write('Classificadores: {names}\n'.format(names=names))
+    f.write('Tempo(ms): {values}\n'.format(values=values))
+    f.write('Desvio: {yerr}\n'.format(yerr=yerr))
+
     fig, ax = pyplot.subplots()
     fig.suptitle("Training time per classifier")
     ax.scatter(names, values)
@@ -72,33 +78,48 @@ def report_results(results):
     ax.set_ylim(bottom=0)
     pyplot.show()
 
-    # Test time
-    fig, ax = pyplot.subplots()
+
+    # Colors
+    colors=['r','g','b']
+
+    # Testing time
+    f.write('\nTesting time:\n')
+    fig, axs = pyplot.subplots(ncols=3, sharey=True)
     fig.suptitle("Testing time per k-classifier ")
+    iplot=0
     for key, result in results.iteritems():
         idx,avg, std = [], [], []
         for knn, samples in sorted(result['kmodes'].iteritems(), key=lambda x: x[1]['kdx']):
             idx.append(samples['kdx'])
             avg.append(numpy.average(samples['testing_time_samples'])*1000)
             std.append(numpy.std(samples['testing_time_samples'])*1000)
-        ax.scatter(idx, avg, label=key)
-        ax.errorbar(idx, avg, yerr=std, linestyle="None")
-    ax.set_ylabel("Training time (ms)")
-    ax.set_ylim(bottom=0)
-    ax.legend()
+        f.write('{key}:\n'.format(key=key))
+        f.write('\tk: {idx}\n'.format(idx=idx))
+        f.write('\tavg: {avg}\n'.format(avg=avg))
+        f.write('\tstd: {std}\n'.format(std=std))
+        axs[iplot].scatter(idx, avg, c=colors[iplot])
+        axs[iplot].errorbar(idx, avg, c=colors[iplot], yerr=std, linestyle="None")
+        axs[iplot].set_ylabel("Training time (ms)")
+        axs[iplot].set_xlabel(key)
+        axs[iplot].set_ylim(bottom=0)
+        iplot += 1
     pyplot.show()
 
     # Accuracy
-    fig, axs = pyplot.subplots(ncols=3,sharey=True)
+    f.write('\nAccuracy:\n')
+    fig, axs = pyplot.subplots(ncols=3, sharey=True)
     fig.suptitle("Accuracy per k-classifier ")
     iplot=0
-    colors=['r','g','b']
     for key, result in results.iteritems():
         idx, avg, std = [], [], []
         for knn, samples in sorted(result['kmodes'].iteritems(), key=lambda x: x[1]['kdx']):
             idx.append(samples['kdx'])
             avg.append(numpy.average(samples['accuracy_samples']))
             std.append(numpy.std(samples['accuracy_samples']))
+        f.write('{key}:\n'.format(key=key))
+        f.write('\tk: {idx}\n'.format(idx=idx))
+        f.write('\tavg: {avg}\n'.format(avg=avg))
+        f.write('\tstd: {std}\n'.format(std=std))
         axs[iplot].scatter(idx, avg, c=colors[iplot])
         axs[iplot].errorbar(idx, avg, c=colors[iplot], yerr=std, linestyle="None")
         axs[iplot].set_ylabel("Accuracy (%)")
@@ -106,6 +127,8 @@ def report_results(results):
         axs[iplot].set_ylim(top=100)
         iplot += 1
     pyplot.show()
+
+    f.close()
 
 
 def run_tests(db_name, n_splits):
@@ -129,7 +152,7 @@ def run_tests(db_name, n_splits):
                 print('.', end='')
             print('Done')
 
-    report_results(results)
+    report_results(results, db_name)
 
 
 def run_main():

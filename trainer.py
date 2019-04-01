@@ -2,8 +2,6 @@
 import math
 import time
 
-from refenrece import carregarDados
-
 
 class SimpleKnn(object):
     training_instances = None
